@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-UIiVg22PC4ABTdJ22WSTrliOLGvfsog+qnGKL+MGxbk='; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Podestalia — 3D Model Showcase</title>
+  <meta name="description" content="Podestalia is a scroll-driven 3D showcase: a carbine, a GT3 race car and an ocean liner that transform into one another before taking their pedestals.">
+  <meta name="theme-color" content="#101112">
+  <meta name="color-scheme" content="dark">
+  <meta property="og:title" content="Podestalia — Objects worth a pedestal">
+  <meta property="og:description" content="Three hand-built 3D models. One continuous transformation.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/jetbrains-mono-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+  <noscript><link rel="stylesheet" href="css/noscript.css"></noscript>
+  <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/examples/jsm/"}}</script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#gallery">Skip to the gallery</a>
+  <div id="sr-live" class="sr-only" aria-live="polite"></div>
+
+  <!-- Loader: dot-matrix card, then numbered tab strips wipe away -->
+  <div id="loader" class="loader" role="status" aria-label="Loading the 3D scene">
+    <div class="ldr">
+      <div class="ldr__screen">
+        <span class="ldr__label">Assembling objects</span>
+        <span class="ldr__num"><span id="loader-pct">0</span><span class="ldr__unit">%</span></span>
+        <canvas id="ldr-dots" class="ldr__dots" aria-hidden="true"></canvas>
+      </div>
+      <div class="ldr__foot">
+        <div class="ldr__badge" aria-hidden="true">Po</div>
+        <div class="ldr__meta">
+          <span class="ldr__tag"><i></i>Procedural 3D · Series 001—003</span>
+          <b>Podestalia</b>
+          <span id="loader-msg" class="ldr__msg">Preparing</span>
+        </div>
+      </div>
+      <div class="ldr__track"><div id="loader-bar" class="ldr__bar"></div></div>
+    </div>
+    <div class="strips" aria-hidden="true">
+      <div class="strip strip--1"><span>01</span></div>
+      <div class="strip strip--2"><span>02</span></div>
+      <div class="strip strip--3"><span>03</span></div>
+      <div class="strip strip--4"><span>04</span></div>
+      <div class="strip strip--5"><span>05</span></div>
+    </div>
+  </div>
+
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <svg id="fx" aria-hidden="true" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="g-flow" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" stop-color="#d8f23e" stop-opacity="0"/>
+        <stop offset="0.3" stop-color="#d8f23e" stop-opacity="0.9"/>
+        <stop offset="0.7" stop-color="#ff5a1f" stop-opacity="0.8"/>
+        <stop offset="1" stop-color="#ff5a1f" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <g id="fx-grid"></g>
+    <g id="fx-flow"></g>
+    <g id="fx-scribble"></g>
+    <g id="fx-leaders"></g>
+  </svg>
+  <div id="callouts" class="callouts" aria-hidden="true"></div>
+  <div id="hotspots" class="hotspots" aria-label="Gallery pedestals"></div>
+  <div id="cursor" class="cursor" aria-hidden="true"><span class="cursor__ring"></span><span class="cursor__label"></span></div>
+
+  <!-- Poster furniture: corner registration marks, side captions, live readout -->
+  <div class="frame" aria-hidden="true">
+    <span class="frame__mark frame__mark--tl"></span><span class="frame__mark frame__mark--tr"></span>
+    <span class="frame__mark frame__mark--bl"></span><span class="frame__mark frame__mark--br"></span>
+    <span class="frame__side frame__side--l">Showcase // Category: procedural objects &nbsp;·&nbsp; Series no: [001—003]</span>
+    <span class="frame__side frame__side--r">Core theme: transformation &nbsp;·&nbsp; Information architecture</span>
+    <span id="hud" class="hud">T 00.000 · CH 00/11 · AZ 0° · EL 0°</span>
+  </div>
+
+  <header class="site-header">
+    <a class="brand" href="#hero" data-jump="0" aria-label="Podestalia — back to the start">
+      <span class="brand__mark" aria-hidden="true">Po</span>
+      <span>Podestalia</span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#carbine" data-jump="1.02"><i>01</i>Carbine</a>
+      <a href="#gt3" data-jump="3.02"><i>02</i>GT3</a>
+      <a href="#bow" data-jump="5.02"><i>03</i>Voyager</a>
+      <a href="#gallery" data-jump="10.05"><i>04</i>Gallery</a>
+    </nav>
+    <div class="site-tools">
+      <button id="motion" class="pill" type="button" aria-pressed="true" title="Toggle ambient motion">Motion <span class="motion__state">On</span></button>
+      <a class="pill pill--lime" href="#contact" data-jump="11.02">Commission</a>
+    </div>
+  </header>
+
+  <nav class="rail" aria-label="Chapters">
+    <div class="rail__line"><div id="rail-fill" class="rail__fill"></div></div>
+    <ol>
+      <li><button class="rail__item" type="button" data-t="0"><b>00</b><span>Intro</span></button></li>
+      <li><button class="rail__item" type="button" data-t="1.02"><b>01</b><span>Carbine</span></button></li>
+      <li><button class="rail__item" type="button" data-t="2.02"><b>02</b><span>Transmute</span></button></li>
+      <li><button class="rail__item" type="button" data-t="3.02"><b>03</b><span>GT3</span></button></li>
+      <li><button class="rail__item" type="button" data-t="4.02"><b>04</b><span>Track → Tide</span></button></li>
+      <li><button class="rail__item" type="button" data-t="5.02"><b>05</b><span>Bow</span></button></li>
+      <li><button class="rail__item" type="button" data-t="6.02"><b>06</b><span>Stern</span></button></li>
+      <li><button class="rail__item" type="button" data-t="7.02"><b>07</b><span>Broadside</span></button></li>
+      <li><button class="rail__item" type="button" data-t="8.02"><b>08</b><span>Above</span></button></li>
+      <li><button class="rail__item" type="button" data-t="9.02"><b>09</b><span>Unveiling</span></button></li>
+      <li><button class="rail__item" type="button" data-t="10.05"><b>10</b><span>Gallery</span></button></li>
+      <li><button class="rail__item" type="button" data-t="11.02"><b>11</b><span>Contact</span></button></li>
+    </ol>
+  </nav>
+
+  <main id="story">
+    <!-- 00 Hero -->
+    <section id="hero" class="chapter" data-chapter="0" aria-labelledby="hero-title">
+      <div class="sticky">
+        <div class="panel panel--hero" data-in="0" data-out="0.4">
+          <div class="hero">
+            <div class="hero__top">
+              <span class="tag">OBJ-SERIES 001—003</span><span class="tag">Procedural 3D</span><span class="tag tag--dim">// Vol. 01</span>
+            </div>
+            <h1 id="hero-title" class="hero__title" data-split>Podestalia</h1>
+            <div class="grid-row">
+              <div class="cell cell--lime cell--wide"><span class="cell__k">Manifesto</span><span class="cell__big">Objects worth<br>a pedestal.</span></div>
+              <div class="cell"><span class="cell__k">Objects</span><span class="cell__v">03</span></div>
+              <div class="cell"><span class="cell__k">Parts</span><span class="cell__v" data-stat="all.parts">—</span></div>
+              <div class="cell cell--hide-sm"><span class="cell__k">Triangles</span><span class="cell__v" data-stat="all.triangles">—</span></div>
+              <div class="cell cell--orange cell--cue"><span class="cell__k">Begin</span><span class="cell__cue"><span class="scroll-cue__line"></span>Scroll</span></div>
+            </div>
+            <p class="hero__copy">A carbine, a GT3 race car and an ocean liner, each hand-built in code, turn into one another as you scroll.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 Carbine -->
+    <section id="carbine" class="chapter" data-chapter="1" aria-labelledby="carbine-title">
+      <div class="sticky">
+        <div class="panel panel--left" data-in="0.04" data-out="0.46">
+          <article class="card card--dark">
+            <header class="card__bar"><span>OBJ-01 · Carbine</span><span>N°01 / 03</span></header>
+            <div class="card__body">
+              <h2 id="carbine-title" class="card__title" data-split>The Carbine</h2>
+              <p class="lede">Built from <span data-stat="carbine.parts">29</span> separate parts.</p>
+              <p>Machined receivers, a gold-finish bolt carrier, a curved magazine and a holographic optic with a lit reticle. Keep scrolling and it comes apart into a labelled exploded view.</p>
+            </div>
+            <div class="card__cells">
+              <div class="cell cell--lime"><span class="cell__k">Parts</span><span class="cell__v" data-stat="carbine.parts">—</span></div>
+              <div class="cell"><span class="cell__k">Triangles</span><span class="cell__v" data-stat="carbine.triangles">—</span></div>
+              <div class="cell"><span class="cell__k">Materials</span><span class="cell__v" data-stat="carbine.materials">—</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="panel panel--corner" data-in="0.6" data-out="0.98">
+          <article class="card card--lime card--sm">
+            <header class="card__bar"><span>Exploded view</span><span>Telemetry</span></header>
+            <div class="card__body">
+              <p class="card__k">Triangle budget by part</p>
+              <div class="bars" data-bars="carbine" role="img" aria-label="Triangle count of the ten largest parts"></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 Transmute -->
+    <section id="transmute" class="chapter" data-chapter="2" aria-labelledby="transmute-title">
+      <div class="sticky">
+        <div class="panel panel--center" data-in="0.1" data-out="0.62">
+          <p class="marks" aria-hidden="true">+ &nbsp; // &nbsp; — ▪ — &nbsp; +</p>
+          <h2 id="transmute-title" class="statement"><span data-split>Disassemble.</span><span class="statement__alt" data-split>Reassemble.</span></h2>
+          <div class="strip-note"><span class="tag tag--lime">Phase 01 → 02</span><span>Each part breaks down into particles that fly across and rebuild the next object.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 GT3 -->
+    <section id="gt3" class="chapter" data-chapter="3" aria-labelledby="gt3-title">
+      <div class="sticky">
+        <div class="panel panel--left" data-in="0.04" data-out="0.32">
+          <article class="card card--dark">
+            <header class="card__bar"><span>OBJ-02 · GT3</span><span>N°02 / 03</span></header>
+            <div class="card__body">
+              <h2 id="gt3-title" class="card__title" data-split>The GT3</h2>
+              <p class="lede">Clearcoat, carbon, and a lot of downforce.</p>
+              <p>A swan-neck wing, center-lock wheels, a four-point LED signature and a full-width light bar. The lines show air moving over the body.</p>
+            </div>
+            <div class="card__cells">
+              <div class="cell"><span class="cell__k">Parts</span><span class="cell__v" data-stat="gt3.parts">—</span></div>
+              <div class="cell cell--orange"><span class="cell__k">Triangles</span><span class="cell__v" data-stat="gt3.triangles">—</span></div>
+              <div class="cell"><span class="cell__k">Meshes</span><span class="cell__v" data-stat="gt3.meshes">—</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="panel panel--bottom-left" data-in="0.38" data-out="0.64">
+          <article class="card card--sage card--quote">
+            <header class="card__bar"><span>Aero profile</span><span>// Side</span></header>
+            <p class="quote">The air goes over the roof, across the wing and off the diffuser.</p>
+          </article>
+        </div>
+        <div class="panel panel--right" data-in="0.72" data-out="0.97">
+          <article class="card card--orange card--sm">
+            <header class="card__bar"><span>Rear three-quarter</span><span>Telemetry</span></header>
+            <div class="card__body">
+              <p class="card__k">Triangle budget by part</p>
+              <div class="bars" data-bars="gt3" role="img" aria-label="Triangle count of the ten largest parts"></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 Track to tide -->
+    <section id="tide" class="chapter" data-chapter="4" aria-labelledby="tide-title">
+      <div class="sticky">
+        <div class="panel panel--center" data-in="0.12" data-out="0.62">
+          <p class="marks" aria-hidden="true">+ &nbsp; // &nbsp; — ▪ — &nbsp; +</p>
+          <h2 id="tide-title" class="statement"><span data-split>From track</span><span class="statement__alt" data-split>to tide.</span></h2>
+          <div class="strip-note"><span class="tag tag--lime">Phase 02 → 03</span><span>The car comes apart, the ocean rises, and the ship's decks stack into place one by one.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05–08 Voyager close-ups -->
+    <section id="bow" class="chapter" data-chapter="5" aria-labelledby="bow-title">
+      <div class="sticky">
+        <div class="panel panel--bottom-left" data-in="0.12" data-out="0.76">
+          <article class="card card--dark">
+            <header class="card__bar"><span>OBJ-03 · Voyager</span><span>View A / Bow</span></header>
+            <div class="card__body">
+              <h2 id="bow-title" class="card__title" data-split>The Bow</h2>
+              <p>A raked stem with a flared bow, a helipad on the foredeck, and the ship's name painted right onto the hull.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="stern" class="chapter" data-chapter="6" aria-labelledby="stern-title">
+      <div class="sticky">
+        <div class="panel panel--bottom-right" data-in="0.12" data-out="0.76">
+          <article class="card card--dark">
+            <header class="card__bar"><span>OBJ-03 · Voyager</span><span>View B / Stern</span></header>
+            <div class="card__body">
+              <h2 id="stern-title" class="card__title" data-split>The Stern</h2>
+              <p>Terraced aft decks step down to a flat transom. Behind it, the wake spreads out in a V at 19.5°.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="broadside" class="chapter" data-chapter="7" aria-labelledby="side-title">
+      <div class="sticky">
+        <div class="panel panel--top-left" data-in="0.12" data-out="0.76">
+          <article class="card card--dark">
+            <header class="card__bar"><span>OBJ-03 · Voyager</span><span>View C / Broadside</span></header>
+            <div class="card__body">
+              <h2 id="side-title" class="card__title" data-split>Broadside</h2>
+              <p>Fourteen decks, sixteen lifeboats and about four thousand windows, each one drawn by a shader.</p>
+            </div>
+            <div class="card__cells">
+              <div class="cell"><span class="cell__k">Decks</span><span class="cell__v">14</span></div>
+              <div class="cell cell--lime"><span class="cell__k">Lifeboats</span><span class="cell__v">16</span></div>
+              <div class="cell"><span class="cell__k">Parts</span><span class="cell__v" data-stat="voyager.parts">—</span></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="above" class="chapter" data-chapter="8" aria-labelledby="above-title">
+      <div class="sticky">
+        <div class="panel panel--bottom-left" data-in="0.12" data-out="0.76">
+          <article class="card card--dark">
+            <header class="card__bar"><span>OBJ-03 · Voyager</span><span>View D / Top</span></header>
+            <div class="card__body">
+              <h2 id="above-title" class="card__title" data-split>From Above</h2>
+              <p>Pool deck, waterslides, sun loungers and a turning radar, seen from directly overhead.</p>
+            </div>
+            <div class="card__cells">
+              <div class="cell"><span class="cell__k">Parts</span><span class="cell__v" data-stat="voyager.parts">—</span></div>
+              <div class="cell cell--orange"><span class="cell__k">Triangles</span><span class="cell__v" data-stat="voyager.triangles">—</span></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 Unveiling -->
+    <section id="unveiling" class="chapter" data-chapter="9" aria-labelledby="unveil-title">
+      <div class="sticky">
+        <div class="panel panel--center" data-in="0.04" data-out="0.4">
+          <p class="marks" aria-hidden="true">+ &nbsp; // &nbsp; — ▪ — &nbsp; +</p>
+          <h2 id="unveil-title" class="statement"><span data-split>The</span><span class="statement__alt" data-split>Unveiling.</span></h2>
+        </div>
+        <div class="panel panel--low-center" data-in="0.55" data-out="0.95">
+          <div class="banner"><span class="tag tag--dark">03 / 03</span><p>Three objects. Three pedestals. One long transformation.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 Gallery -->
+    <section id="gallery" class="chapter" data-chapter="10" aria-labelledby="gallery-title" tabindex="-1">
+      <div class="sticky">
+        <div class="panel panel--gallery" data-in="0" data-out="0.9">
+          <article class="card card--ghost">
+            <header class="card__bar"><span>The Gallery</span><span>OBJ-01 — OBJ-03</span></header>
+            <div class="card__body">
+              <h2 id="gallery-title" class="card__title card__title--sm" data-split>On Display</h2>
+              <p>Pick a pedestal to inspect a model. Drag to orbit, scroll or pinch to zoom, and press Esc to leave. You can also explode it, view it as a blueprint, or repaint the car.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 Contact -->
+    <section id="contact" class="chapter chapter--contact" data-chapter="11" aria-labelledby="contact-title">
+      <div class="contact">
+        <div class="contact__bar"><span class="tag tag--lime">Commissions open</span><span class="marks" aria-hidden="true">+ &nbsp; // &nbsp; — ▪ —</span><span class="tag tag--dim">OBJ-04 · Yours?</span></div>
+        <h2 id="contact-title" class="contact__title">Have an object worth a <mark>pedestal?</mark></h2>
+        <a class="cta" href="mailto:studio@podestalia.example"><span>studio@podestalia.example</span><span aria-hidden="true">→</span></a>
+        <div class="contact__grid">
+          <div class="cell cell--tall"><span class="cell__k">01 · Made with</span><p>Every model here is built procedurally in the browser with three.js. There are no downloaded meshes. Parts, triangle counts and materials are measured live.</p></div>
+          <div class="cell cell--tall"><span class="cell__k">02 · Your privacy</span><p>No trackers, cookies, analytics or third-party requests. Fonts and libraries are self-hosted. The only thing stored is your motion preference, and only on your device.</p></div>
+          <div class="cell cell--tall"><span class="cell__k">03 · Accessibility</span><p>The site respects reduced-motion settings, has a Motion toggle, works fully with the keyboard, and keeps all chapter text readable even without WebGL.</p></div>
+        </div>
+        <p class="fine">© <span id="year">2026</span> Podestalia · Series [001—003] · All models are fictional display pieces, not affiliated with any manufacturer.</p>
+      </div>
+    </section>
+  </main>
+
+  <aside id="inspector" class="inspector" aria-labelledby="insp-title" hidden>
+    <header class="insp__bar"><span id="insp-index">OBJ-01</span><span>Series [001—003]</span></header>
+    <div class="insp__head">
+      <h2 id="insp-title" tabindex="-1">Carbine</h2>
+      <p class="insp__sub">Part_count, triangles, materials, ward</p>
+      <p id="insp-blurb"></p>
+    </div>
+    <div class="insp__radar">
+      <svg id="insp-radar" viewBox="-120 -112 240 224" role="img" aria-label="Radar chart comparing this model with the others"></svg>
+      <span class="insp__radar-k">Relative to series max</span>
+    </div>
+    <dl id="insp-specs" class="specs"></dl>
+    <p id="insp-note" class="note"></p>
+    <div class="insp__dump"><span class="cell__k">Vertex_log · aHome[0…11]</span><pre id="insp-dump"></pre></div>
+    <div class="inspector__actions" role="group" aria-label="View options">
+      <button type="button" class="pill" data-act="explode" aria-pressed="false">Explode</button>
+      <button type="button" class="pill" data-act="wire" aria-pressed="false">Blueprint</button>
+      <button type="button" class="pill" data-act="spin" aria-pressed="true">Turntable</button>
+      <button type="button" class="pill" data-act="lights" aria-pressed="true" hidden>Lights</button>
+    </div>
+    <div id="insp-swatches" class="swatches" role="radiogroup" aria-label="Paint colour" hidden></div>
+    <div class="inspector__nav">
+      <button type="button" class="pill" data-act="prev" aria-label="Previous model">←</button>
+      <button type="button" class="pill" data-act="next" aria-label="Next model">→</button>
+      <button type="button" class="pill pill--lime" data-act="close">Close <kbd>Esc</kbd></button>
+    </div>
+    <p class="hint">Drag to orbit · Scroll / pinch to zoom · Double-click to reset · ← → to switch</p>
+  </aside>
+
+  <div id="fallback" class="fallback" role="note" hidden>
+    <p class="tag tag--lime">Static mode</p>
+    <p>Your browser couldn't start WebGL, so the 3D scene is turned off. All the chapter text is still here.</p>
+    <p class="fine" data-detail></p>
+  </div>
+  <noscript><div class="fallback fallback--show"><p class="tag tag--lime">Static mode</p><p>Turn on JavaScript to see the 3D story. The chapter text below still works without it.</p></div></noscript>
+</body>
+</html>
